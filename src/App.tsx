@@ -14,6 +14,7 @@ import HowItWorks from "./pages/HowItWorks";
 import ClientDashboard from "./pages/dashboard/ClientDashboard";
 import WriterDashboard from "./pages/dashboard/WriterDashboard";
 import ClientJobDetail from "./pages/dashboard/ClientJobDetail";
+import Messages from "./pages/Messages";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/jobs" element={<Jobs />} />
             <Route path="/jobs/:id" element={<JobDetail />} />
             <Route path="/how-it-works" element={<HowItWorks />} />
+            <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
             <Route path="/dashboard/client" element={<ProtectedRoute allowedRoles={['client']}><ClientDashboard /></ProtectedRoute>} />
             <Route path="/dashboard/client/jobs/:jobId" element={<ProtectedRoute allowedRoles={['client']}><ClientJobDetail /></ProtectedRoute>} />
             <Route path="/dashboard/writer" element={<ProtectedRoute allowedRoles={['writer']}><WriterDashboard /></ProtectedRoute>} />
