@@ -14,16 +14,344 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      applications: {
+        Row: {
+          bid: number
+          created_at: string
+          id: string
+          job_id: string
+          proposal: string
+          status: Database["public"]["Enums"]["application_status"]
+          updated_at: string
+          writer_id: string
+        }
+        Insert: {
+          bid: number
+          created_at?: string
+          id?: string
+          job_id: string
+          proposal: string
+          status?: Database["public"]["Enums"]["application_status"]
+          updated_at?: string
+          writer_id: string
+        }
+        Update: {
+          bid?: number
+          created_at?: string
+          id?: string
+          job_id?: string
+          proposal?: string
+          status?: Database["public"]["Enums"]["application_status"]
+          updated_at?: string
+          writer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applications_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contracts: {
+        Row: {
+          amount: number
+          client_id: string
+          created_at: string
+          id: string
+          job_id: string
+          status: Database["public"]["Enums"]["contract_status"]
+          submission_notes: string | null
+          submission_url: string | null
+          updated_at: string
+          writer_id: string
+        }
+        Insert: {
+          amount: number
+          client_id: string
+          created_at?: string
+          id?: string
+          job_id: string
+          status?: Database["public"]["Enums"]["contract_status"]
+          submission_notes?: string | null
+          submission_url?: string | null
+          updated_at?: string
+          writer_id: string
+        }
+        Update: {
+          amount?: number
+          client_id?: string
+          created_at?: string
+          id?: string
+          job_id?: string
+          status?: Database["public"]["Enums"]["contract_status"]
+          submission_notes?: string | null
+          submission_url?: string | null
+          updated_at?: string
+          writer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contracts_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jobs: {
+        Row: {
+          budget: number
+          category: string | null
+          client_id: string
+          created_at: string
+          deadline: string | null
+          description: string
+          id: string
+          skills_required: string[] | null
+          status: Database["public"]["Enums"]["job_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          budget: number
+          category?: string | null
+          client_id: string
+          created_at?: string
+          deadline?: string | null
+          description: string
+          id?: string
+          skills_required?: string[] | null
+          status?: Database["public"]["Enums"]["job_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          budget?: number
+          category?: string | null
+          client_id?: string
+          created_at?: string
+          deadline?: string | null
+          description?: string
+          id?: string
+          skills_required?: string[] | null
+          status?: Database["public"]["Enums"]["job_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          read: boolean | null
+          receiver_id: string
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          read?: boolean | null
+          receiver_id: string
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          read?: boolean | null
+          receiver_id?: string
+          sender_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          full_name: string
+          id: string
+          rating: number | null
+          review_count: number | null
+          skills: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          full_name?: string
+          id?: string
+          rating?: number | null
+          review_count?: number | null
+          skills?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          full_name?: string
+          id?: string
+          rating?: number | null
+          review_count?: number | null
+          skills?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      reviews: {
+        Row: {
+          comment: string | null
+          contract_id: string
+          created_at: string
+          id: string
+          rating: number
+          reviewer_id: string
+          target_id: string
+        }
+        Insert: {
+          comment?: string | null
+          contract_id: string
+          created_at?: string
+          id?: string
+          rating: number
+          reviewer_id: string
+          target_id: string
+        }
+        Update: {
+          comment?: string | null
+          contract_id?: string
+          created_at?: string
+          id?: string
+          rating?: number
+          reviewer_id?: string
+          target_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          id: string
+          reference_id: string | null
+          type: Database["public"]["Enums"]["transaction_type"]
+          wallet_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          reference_id?: string | null
+          type: Database["public"]["Enums"]["transaction_type"]
+          wallet_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          reference_id?: string | null
+          type?: Database["public"]["Enums"]["transaction_type"]
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      wallets: {
+        Row: {
+          balance: number
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "writer" | "client"
+      application_status: "pending" | "accepted" | "rejected"
+      contract_status: "active" | "completed" | "disputed" | "cancelled"
+      job_status: "open" | "in_progress" | "completed" | "cancelled"
+      transaction_type:
+        | "deposit"
+        | "withdrawal"
+        | "escrow_hold"
+        | "escrow_release"
+        | "refund"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +478,18 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "writer", "client"],
+      application_status: ["pending", "accepted", "rejected"],
+      contract_status: ["active", "completed", "disputed", "cancelled"],
+      job_status: ["open", "in_progress", "completed", "cancelled"],
+      transaction_type: [
+        "deposit",
+        "withdrawal",
+        "escrow_hold",
+        "escrow_release",
+        "refund",
+      ],
+    },
   },
 } as const
