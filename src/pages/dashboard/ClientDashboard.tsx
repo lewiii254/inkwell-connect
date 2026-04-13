@@ -71,6 +71,7 @@ const ClientDashboard = () => {
             <Feather className="h-5 w-5 text-accent" /> InkBridge
           </Link>
           <div className="flex items-center gap-4">
+            {navItems}
             <span className="text-sm text-muted-foreground">Hi, {profile?.full_name || 'Client'}</span>
             <Button variant="ghost" size="sm" onClick={() => { signOut(); navigate('/'); }}>
               <LogOut className="h-4 w-4" />

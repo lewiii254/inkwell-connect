@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Feather, PenLine, FileText, DollarSign, LogOut } from 'lucide-react';
+import { Feather, PenLine, FileText, DollarSign, LogOut, MessageSquare } from 'lucide-react';
 
 const WriterDashboard = () => {
   const { user, profile, signOut } = useAuth();
@@ -43,6 +43,9 @@ const WriterDashboard = () => {
             <Feather className="h-5 w-5 text-accent" /> InkBridge
           </Link>
           <div className="flex items-center gap-4">
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/messages"><MessageSquare className="mr-2 h-4 w-4" /> Messages</Link>
+            </Button>
             <span className="text-sm text-muted-foreground">Hi, {profile?.full_name || 'Writer'}</span>
             <Button variant="ghost" size="sm" onClick={() => { signOut(); navigate('/'); }}>
               <LogOut className="h-4 w-4" />
