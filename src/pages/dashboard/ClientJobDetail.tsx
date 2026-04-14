@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Check, X, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Check, X, MessageSquare, Download, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 
 const ClientJobDetail = () => {
@@ -15,15 +15,22 @@ const ClientJobDetail = () => {
   const [job, setJob] = useState<any>(null);
   const [applications, setApplications] = useState<any[]>([]);
   const [profiles, setProfiles] = useState<Record<string, any>>({});
+  const [contracts, setContracts] = useState<any[]>([]);
 
   const fetchData = async () => {
     if (!jobId) return;
-    const { data: j } = await supabase.from('jobs').select('*').eq('id', jobId).single();
+    const [{ data: j }, { data: apps }, { data: cts }] = await Promise.all([
+      supabase.from('jobs').select('*').eq('id', jobId).single(),
+      supabase.from('applications').select('*').eq('job_id', jobId),
+      supabase.from('contracts').select('*').eq('job_id', jobId),
+    ]);
     if (j) setJob(j);
-    const { data: apps } = await supabase.from('applications').select('*').eq('job_id', jobId);
     if (apps) {
       setApplications(apps);
       const writerIds = apps.map(a => a.writer_id);
+      if (cts) {
+        cts.forEach(c => { if (!writerIds.includes(c.writer_id)) writerIds.push(c.writer_id); });
+      }
       if (writerIds.length > 0) {
         const { data: profs } = await supabase.from('profiles').select('*').in('user_id', writerIds);
         if (profs) {
@@ -33,6 +40,7 @@ const ClientJobDetail = () => {
         }
       }
     }
+    if (cts) setContracts(cts);
   };
 
   useEffect(() => { fetchData(); }, [jobId]);
@@ -59,6 +67,22 @@ const ClientJobDetail = () => {
     fetchData();
   };
 
+  const handleDownload = async (submissionUrl: string) => {
+    const { data, error } = await supabase.storage.from('submissions').download(submissionUrl);
+    if (error || !data) {
+      toast.error('Download failed: ' + (error?.message || 'Unknown error'));
+      return;
+    }
+    const url = URL.createObjectURL(data);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = submissionUrl.split('/').pop() || 'submission';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   if (!job) return <div className="min-h-screen flex items-center justify-center"><div className="h-32 w-32 bg-muted animate-pulse rounded-xl" /></div>;
 
   return (
@@ -79,6 +103,53 @@ const ClientJobDetail = () => {
             <p className="text-sm">Budget: <strong>${job.budget}</strong></p>
           </CardContent>
         </Card>
+
+        {/* Submissions Section */}
+        {contracts.length > 0 && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="font-heading">Submissions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {contracts.map(ct => (
+                  <div key={ct.id} className="p-4 rounded-lg border space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-sm">{profiles[ct.writer_id]?.full_name || 'Writer'}</p>
+                        <p className="text-xs text-muted-foreground">Amount: ${ct.amount}</p>
+                      </div>
+                      <Badge variant={ct.status === 'completed' ? 'default' : ct.status === 'active' ? 'secondary' : 'destructive'}>{ct.status}</Badge>
+                    </div>
+
+                    {ct.submission_url ? (
+                      <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          <FileText className="h-4 w-4 text-accent" /> Submitted Work
+                        </div>
+                        {ct.submission_notes && (
+                          <p className="text-xs text-muted-foreground">{ct.submission_notes}</p>
+                        )}
+                        <Button size="sm" variant="outline" onClick={() => handleDownload(ct.submission_url)}>
+                          <Download className="mr-1 h-3.5 w-3.5" /> Download File
+                        </Button>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic">No submission yet.</p>
+                    )}
+
+                    <Button size="sm" variant="outline" asChild>
+                      <Link to={`/messages/${ct.writer_id}`}>
+                        <MessageSquare className="mr-1 h-3.5 w-3.5" /> Message Writer
+                      </Link>
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <Card>
           <CardHeader>
             <CardTitle className="font-heading">Applications ({applications.length})</CardTitle>
