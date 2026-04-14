@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Feather, Plus, Briefcase, Users, DollarSign, LogOut, MessageSquare } from 'lucide-react';
 import { toast } from 'sonner';
+import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 
 const ClientDashboard = () => {
   const { user, profile, signOut } = useAuth();
@@ -19,6 +20,7 @@ const ClientDashboard = () => {
   const [wallet, setWallet] = useState<any>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({ title: '', description: '', budget: '', deadline: '', category: 'general', skills: '' });
+  const unreadCount = useUnreadMessages();
 
   const fetchData = async () => {
     if (!user) return;
@@ -57,12 +59,6 @@ const ClientDashboard = () => {
     { label: 'Wallet Balance', value: `$${wallet?.balance || 0}`, icon: DollarSign },
   ];
 
-  const navItems = (
-    <Button variant="outline" size="sm" asChild className="mr-2">
-      <Link to="/messages"><MessageSquare className="mr-2 h-4 w-4" /> Messages</Link>
-    </Button>
-  );
-
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
@@ -71,7 +67,16 @@ const ClientDashboard = () => {
             <Feather className="h-5 w-5 text-accent" /> InkBridge
           </Link>
           <div className="flex items-center gap-4">
-            {navItems}
+            <Button variant="outline" size="sm" asChild className="relative">
+              <Link to="/messages">
+                <MessageSquare className="mr-2 h-4 w-4" /> Messages
+                {unreadCount > 0 && (
+                  <span className="absolute -top-2 -right-2 h-5 min-w-[1.25rem] rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center px-1">
+                    {unreadCount}
+                  </span>
+                )}
+              </Link>
+            </Button>
             <span className="text-sm text-muted-foreground">Hi, {profile?.full_name || 'Client'}</span>
             <Button variant="ghost" size="sm" onClick={() => { signOut(); navigate('/'); }}>
               <LogOut className="h-4 w-4" />

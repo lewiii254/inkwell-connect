@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -30,6 +30,7 @@ interface Conversation {
 
 const Messages = () => {
   const { user, profile, signOut } = useAuth();
+  const { userId: urlUserId } = useParams();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [selectedName, setSelectedName] = useState('');
@@ -37,6 +38,17 @@ const Messages = () => {
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  // Handle URL-based user selection (e.g. /messages/:userId)
+  useEffect(() => {
+    if (!urlUserId || !user) return;
+    const initConversation = async () => {
+      const { data: prof } = await supabase.from('profiles').select('full_name').eq('user_id', urlUserId).single();
+      setSelectedUserId(urlUserId);
+      setSelectedName(prof?.full_name || 'User');
+    };
+    initConversation();
+  }, [urlUserId, user]);
 
   // Load conversations
   useEffect(() => {
@@ -50,7 +62,6 @@ const Messages = () => {
 
       if (!msgs) return;
 
-      // Group by other user
       const convMap = new Map<string, { messages: Message[] }>();
       msgs.forEach((m: Message) => {
         const otherId = m.sender_id === user.id ? m.receiver_id : m.sender_id;
@@ -58,7 +69,6 @@ const Messages = () => {
         convMap.get(otherId)!.messages.push(m);
       });
 
-      // Fetch profiles for all conversation partners
       const userIds = Array.from(convMap.keys());
       if (userIds.length === 0) { setConversations([]); return; }
 
@@ -107,7 +117,6 @@ const Messages = () => {
 
       if (data) setMessages(data as Message[]);
 
-      // Mark unread messages as read
       await supabase
         .from('messages')
         .update({ read: true })
@@ -127,27 +136,19 @@ const Messages = () => {
       .channel('messages-realtime')
       .on(
         'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-        },
+        { event: 'INSERT', schema: 'public', table: 'messages' },
         (payload) => {
           const msg = payload.new as Message;
-          // Only process if we're part of this conversation
           if (msg.sender_id !== user.id && msg.receiver_id !== user.id) return;
 
-          // If we're viewing this conversation, add the message
           const otherId = msg.sender_id === user.id ? msg.receiver_id : msg.sender_id;
           if (otherId === selectedUserId) {
             setMessages(prev => [...prev, msg]);
-            // Mark as read if we received it
             if (msg.receiver_id === user.id) {
               supabase.from('messages').update({ read: true }).eq('id', msg.id).then();
             }
           }
 
-          // Update conversations list
           setConversations(prev => {
             const existing = prev.find(c => c.user_id === otherId);
             if (existing) {
@@ -157,19 +158,15 @@ const Messages = () => {
                   : c
               ).sort((a, b) => new Date(b.last_time).getTime() - new Date(a.last_time).getTime());
             }
-            // New conversation — will be picked up on next full reload
             return prev;
           });
         }
       )
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [user, selectedUserId]);
 
-  // Auto-scroll on new messages
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -191,7 +188,6 @@ const Messages = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
       <header className="border-b bg-card shrink-0">
         <div className="container mx-auto flex items-center justify-between h-16 px-4">
           <Link to="/" className="flex items-center gap-2 font-heading font-bold text-lg">
@@ -206,9 +202,7 @@ const Messages = () => {
         </div>
       </header>
 
-      {/* Chat layout */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Conversations sidebar */}
         <div className={`w-full md:w-80 border-r bg-card flex flex-col shrink-0 ${selectedUserId ? 'hidden md:flex' : 'flex'}`}>
           <div className="p-4 border-b">
             <h2 className="font-heading font-semibold flex items-center gap-2">
@@ -254,11 +248,9 @@ const Messages = () => {
           </ScrollArea>
         </div>
 
-        {/* Chat area */}
         <div className={`flex-1 flex flex-col ${!selectedUserId ? 'hidden md:flex' : 'flex'}`}>
           {selectedUserId ? (
             <>
-              {/* Chat header */}
               <div className="p-4 border-b bg-card flex items-center gap-3">
                 <Button variant="ghost" size="sm" className="md:hidden" onClick={() => setSelectedUserId(null)}>
                   <ArrowLeft className="h-4 w-4" />
@@ -271,7 +263,6 @@ const Messages = () => {
                 <span className="font-heading font-semibold">{selectedName}</span>
               </div>
 
-              {/* Messages */}
               <ScrollArea className="flex-1 p-4">
                 <div className="space-y-3 max-w-2xl mx-auto">
                   {messages.map(msg => {
@@ -291,7 +282,6 @@ const Messages = () => {
                 </div>
               </ScrollArea>
 
-              {/* Input */}
               <form onSubmit={handleSend} className="p-4 border-t bg-card">
                 <div className="flex gap-2 max-w-2xl mx-auto">
                   <Input
