@@ -13,6 +13,7 @@ import JobDetail from "./pages/JobDetail";
 import HowItWorks from "./pages/HowItWorks";
 import ClientDashboard from "./pages/dashboard/ClientDashboard";
 import WriterDashboard from "./pages/dashboard/WriterDashboard";
+import AdminDashboard from "./pages/dashboard/AdminDashboard";
 import ClientJobDetail from "./pages/dashboard/ClientJobDetail";
 import Messages from "./pages/Messages";
 import NotFound from "./pages/NotFound";
@@ -34,9 +35,11 @@ const App = () => (
             <Route path="/jobs/:id" element={<JobDetail />} />
             <Route path="/how-it-works" element={<HowItWorks />} />
             <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+            <Route path="/messages/:userId" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
             <Route path="/dashboard/client" element={<ProtectedRoute allowedRoles={['client']}><ClientDashboard /></ProtectedRoute>} />
             <Route path="/dashboard/client/jobs/:jobId" element={<ProtectedRoute allowedRoles={['client']}><ClientJobDetail /></ProtectedRoute>} />
             <Route path="/dashboard/writer" element={<ProtectedRoute allowedRoles={['writer']}><WriterDashboard /></ProtectedRoute>} />
+            <Route path="/dashboard/admin" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

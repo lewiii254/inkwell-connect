@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Check, X } from 'lucide-react';
+import { ArrowLeft, Check, X, MessageSquare } from 'lucide-react';
 import { toast } from 'sonner';
 
 const ClientJobDetail = () => {
@@ -48,7 +48,6 @@ const ClientJobDetail = () => {
       client_id: user.id,
       amount: app?.bid || job.budget,
     });
-    // Reject other applications
     await supabase.from('applications').update({ status: 'rejected' }).eq('job_id', jobId!).neq('id', appId);
     toast.success('Writer accepted! Contract created.');
     fetchData();
@@ -101,16 +100,23 @@ const ClientJobDetail = () => {
                       </Badge>
                     </div>
                     <p className="text-sm text-muted-foreground mb-3">{app.proposal}</p>
-                    {app.status === 'pending' && (
-                      <div className="flex gap-2">
-                        <Button size="sm" onClick={() => handleAccept(app.id, app.writer_id)}>
-                          <Check className="mr-1 h-3.5 w-3.5" /> Accept
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => handleReject(app.id)}>
-                          <X className="mr-1 h-3.5 w-3.5" /> Reject
-                        </Button>
-                      </div>
-                    )}
+                    <div className="flex gap-2">
+                      {app.status === 'pending' && (
+                        <>
+                          <Button size="sm" onClick={() => handleAccept(app.id, app.writer_id)}>
+                            <Check className="mr-1 h-3.5 w-3.5" /> Accept
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => handleReject(app.id)}>
+                            <X className="mr-1 h-3.5 w-3.5" /> Reject
+                          </Button>
+                        </>
+                      )}
+                      <Button size="sm" variant="outline" asChild>
+                        <Link to={`/messages/${app.writer_id}`}>
+                          <MessageSquare className="mr-1 h-3.5 w-3.5" /> Message Writer
+                        </Link>
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>

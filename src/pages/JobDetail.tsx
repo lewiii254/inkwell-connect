@@ -16,29 +16,33 @@ import { format } from 'date-fns';
 
 const JobDetail = () => {
   const { id } = useParams();
-  const { user, role } = useAuth();
+  const { user, role, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [job, setJob] = useState<any>(null);
   const [proposal, setProposal] = useState('');
   const [bid, setBid] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [applied, setApplied] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetch = async () => {
+    const fetchJob = async () => {
+      setLoading(true);
       const { data } = await supabase.from('jobs').select('*').eq('id', id).single();
       if (data) setJob(data);
       if (user) {
         const { data: app } = await supabase.from('applications').select('id').eq('job_id', id!).eq('writer_id', user.id);
         if (app && app.length > 0) setApplied(true);
       }
+      setLoading(false);
     };
-    if (id) fetch();
+    if (id) fetchJob();
   }, [id, user]);
 
   const handleApply = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) { navigate('/login'); return; }
+    if (role !== 'writer') { toast.error('Only writers can apply to jobs.'); return; }
     setSubmitting(true);
     try {
       const { error } = await supabase.from('applications').insert({
@@ -57,7 +61,7 @@ const JobDetail = () => {
     }
   };
 
-  if (!job) return (
+  if (loading || authLoading) return (
     <div className="min-h-screen">
       <Navbar />
       <div className="pt-24 container mx-auto px-4">
@@ -65,6 +69,17 @@ const JobDetail = () => {
       </div>
     </div>
   );
+
+  if (!job) return (
+    <div className="min-h-screen">
+      <Navbar />
+      <div className="pt-24 container mx-auto px-4 text-center">
+        <p className="text-muted-foreground">Job not found.</p>
+      </div>
+    </div>
+  );
+
+  const canApply = user && role === 'writer' && job.status === 'open';
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -96,7 +111,7 @@ const JobDetail = () => {
               </Card>
             </div>
             <div>
-              {role === 'writer' && job.status === 'open' && (
+              {canApply && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-lg font-heading">
@@ -124,10 +139,24 @@ const JobDetail = () => {
                   </CardContent>
                 </Card>
               )}
+              {user && role === 'writer' && job.status !== 'open' && (
+                <Card>
+                  <CardContent className="pt-6">
+                    <p className="text-sm text-muted-foreground">This job is no longer accepting applications.</p>
+                  </CardContent>
+                </Card>
+              )}
+              {user && role === 'client' && (
+                <Card>
+                  <CardContent className="pt-6">
+                    <p className="text-sm text-muted-foreground">You're viewing this as a client. Writers can apply to this job.</p>
+                  </CardContent>
+                </Card>
+              )}
               {!user && (
                 <Card>
                   <CardContent className="pt-6">
-                    <p className="text-sm text-muted-foreground mb-3">Sign in to apply for this job.</p>
+                    <p className="text-sm text-muted-foreground mb-3">Sign in as a writer to apply for this job.</p>
                     <Button className="w-full" onClick={() => navigate('/login')}>Sign In</Button>
                   </CardContent>
                 </Card>

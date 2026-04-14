@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Feather, PenLine, FileText, DollarSign, LogOut, MessageSquare } from 'lucide-react';
+import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 
 const WriterDashboard = () => {
   const { user, profile, signOut } = useAuth();
@@ -13,6 +14,7 @@ const WriterDashboard = () => {
   const [applications, setApplications] = useState<any[]>([]);
   const [contracts, setContracts] = useState<any[]>([]);
   const [wallet, setWallet] = useState<any>(null);
+  const unreadCount = useUnreadMessages();
 
   useEffect(() => {
     if (!user) return;
@@ -43,8 +45,15 @@ const WriterDashboard = () => {
             <Feather className="h-5 w-5 text-accent" /> InkBridge
           </Link>
           <div className="flex items-center gap-4">
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/messages"><MessageSquare className="mr-2 h-4 w-4" /> Messages</Link>
+            <Button variant="outline" size="sm" asChild className="relative">
+              <Link to="/messages">
+                <MessageSquare className="mr-2 h-4 w-4" /> Messages
+                {unreadCount > 0 && (
+                  <span className="absolute -top-2 -right-2 h-5 min-w-[1.25rem] rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center px-1">
+                    {unreadCount}
+                  </span>
+                )}
+              </Link>
             </Button>
             <span className="text-sm text-muted-foreground">Hi, {profile?.full_name || 'Writer'}</span>
             <Button variant="ghost" size="sm" onClick={() => { signOut(); navigate('/'); }}>
@@ -104,12 +113,19 @@ const WriterDashboard = () => {
               ) : (
                 <div className="space-y-3">
                   {contracts.slice(0, 5).map(ct => (
-                    <div key={ct.id} className="flex items-center justify-between p-3 rounded-lg border">
-                      <div>
-                        <p className="font-medium text-sm">{(ct as any).jobs?.title}</p>
-                        <p className="text-xs text-muted-foreground">${ct.amount}</p>
+                    <div key={ct.id} className="p-3 rounded-lg border space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-sm">{(ct as any).jobs?.title}</p>
+                          <p className="text-xs text-muted-foreground">${ct.amount}</p>
+                        </div>
+                        <Badge>{ct.status}</Badge>
                       </div>
-                      <Badge>{ct.status}</Badge>
+                      <Button variant="outline" size="sm" asChild>
+                        <Link to={`/messages/${ct.client_id}`}>
+                          <MessageSquare className="mr-1 h-3.5 w-3.5" /> Message Client
+                        </Link>
+                      </Button>
                     </div>
                   ))}
                 </div>
