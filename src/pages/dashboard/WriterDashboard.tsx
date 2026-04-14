@@ -1,12 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Feather, PenLine, FileText, DollarSign, LogOut, MessageSquare } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Feather, PenLine, FileText, DollarSign, LogOut, MessageSquare, Upload, FileUp, Check } from 'lucide-react';
 import { useUnreadMessages } from '@/hooks/useUnreadMessages';
+import { toast } from 'sonner';
 
 const WriterDashboard = () => {
   const { user, profile, signOut } = useAuth();
@@ -14,11 +17,14 @@ const WriterDashboard = () => {
   const [applications, setApplications] = useState<any[]>([]);
   const [contracts, setContracts] = useState<any[]>([]);
   const [wallet, setWallet] = useState<any>(null);
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const [submissionNotes, setSubmissionNotes] = useState<Record<string, string>>({});
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const unreadCount = useUnreadMessages();
 
   useEffect(() => {
     if (!user) return;
-    const fetch = async () => {
+    const fetchData = async () => {
       const [{ data: apps }, { data: cts }, { data: w }] = await Promise.all([
         supabase.from('applications').select('*, jobs(title, budget, status)').eq('writer_id', user.id).order('created_at', { ascending: false }),
         supabase.from('contracts').select('*, jobs(title)').eq('writer_id', user.id).order('created_at', { ascending: false }),
@@ -28,8 +34,51 @@ const WriterDashboard = () => {
       if (cts) setContracts(cts);
       if (w) setWallet(w);
     };
-    fetch();
+    fetchData();
   }, [user]);
+
+  const handleFileUpload = async (contractId: string, file: File) => {
+    if (!user) return;
+    const allowed = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    if (!allowed.includes(file.type)) {
+      toast.error('Only PDF and DOCX files are allowed.');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('File must be under 10MB.');
+      return;
+    }
+
+    setUploadingId(contractId);
+    const ext = file.name.split('.').pop();
+    const path = `${user.id}/${contractId}.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('submissions')
+      .upload(path, file, { upsert: true });
+
+    if (uploadError) {
+      toast.error('Upload failed: ' + uploadError.message);
+      setUploadingId(null);
+      return;
+    }
+
+    const { data: urlData } = supabase.storage.from('submissions').getPublicUrl(path);
+
+    const { error: updateError } = await supabase.from('contracts').update({
+      submission_url: path,
+      submission_notes: submissionNotes[contractId] || '',
+      status: 'completed' as any,
+    }).eq('id', contractId);
+
+    if (updateError) {
+      toast.error('Failed to update contract: ' + updateError.message);
+    } else {
+      toast.success('Work submitted successfully!');
+      setContracts(prev => prev.map(c => c.id === contractId ? { ...c, submission_url: path, submission_notes: submissionNotes[contractId] || '', status: 'completed' } : c));
+    }
+    setUploadingId(null);
+  };
 
   const stats = [
     { label: 'Applications', value: applications.length, icon: PenLine },
@@ -106,21 +155,63 @@ const WriterDashboard = () => {
             </CardContent>
           </Card>
           <Card>
-            <CardHeader><CardTitle className="font-heading">Active Contracts</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="font-heading">Contracts</CardTitle></CardHeader>
             <CardContent>
               {contracts.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-8 text-center">No active contracts.</p>
+                <p className="text-sm text-muted-foreground py-8 text-center">No contracts yet.</p>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {contracts.slice(0, 5).map(ct => (
-                    <div key={ct.id} className="p-3 rounded-lg border space-y-2">
+                    <div key={ct.id} className="p-4 rounded-lg border space-y-3">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="font-medium text-sm">{(ct as any).jobs?.title}</p>
                           <p className="text-xs text-muted-foreground">${ct.amount}</p>
                         </div>
-                        <Badge>{ct.status}</Badge>
+                        <Badge variant={ct.status === 'completed' ? 'default' : ct.status === 'active' ? 'secondary' : 'destructive'}>{ct.status}</Badge>
                       </div>
+
+                      {ct.status === 'active' && (
+                        <div className="space-y-2 pt-2 border-t">
+                          <Label className="text-xs font-medium">Submit Your Work</Label>
+                          <Textarea
+                            placeholder="Add notes about your submission..."
+                            value={submissionNotes[ct.id] || ''}
+                            onChange={e => setSubmissionNotes(prev => ({ ...prev, [ct.id]: e.target.value }))}
+                            rows={2}
+                            className="text-sm"
+                          />
+                          <input
+                            type="file"
+                            accept=".pdf,.docx"
+                            className="hidden"
+                            ref={el => { fileInputRefs.current[ct.id] = el; }}
+                            onChange={e => {
+                              const file = e.target.files?.[0];
+                              if (file) handleFileUpload(ct.id, file);
+                            }}
+                          />
+                          <Button
+                            size="sm"
+                            variant="default"
+                            disabled={uploadingId === ct.id}
+                            onClick={() => fileInputRefs.current[ct.id]?.click()}
+                          >
+                            {uploadingId === ct.id ? (
+                              <><FileUp className="mr-1 h-3.5 w-3.5 animate-pulse" /> Uploading...</>
+                            ) : (
+                              <><Upload className="mr-1 h-3.5 w-3.5" /> Upload PDF/DOCX</>
+                            )}
+                          </Button>
+                        </div>
+                      )}
+
+                      {ct.submission_url && (
+                        <div className="flex items-center gap-2 text-xs text-accent">
+                          <Check className="h-3.5 w-3.5" /> Work submitted
+                        </div>
+                      )}
+
                       <Button variant="outline" size="sm" asChild>
                         <Link to={`/messages/${ct.client_id}`}>
                           <MessageSquare className="mr-1 h-3.5 w-3.5" /> Message Client
